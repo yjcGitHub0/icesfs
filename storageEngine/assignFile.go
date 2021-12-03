@@ -1,7 +1,7 @@
 package storageEngine
 
 import (
-	"encoding/json"
+	jsoniter "github.com/json-iterator/go"
 	"io/ioutil"
 	"net/http"
 	"object-storage-server/command"
@@ -26,7 +26,7 @@ func AssignFileHandler() (assignFileInfo *AssignFileInfo, err error) {
 	}
 
 	assignFileInfo = &AssignFileInfo{}
-	err = json.Unmarshal(httpBody, assignFileInfo)
+	err = jsoniter.Unmarshal(httpBody, assignFileInfo)
 	if err != nil {
 		return
 	}
