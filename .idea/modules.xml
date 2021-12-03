@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/objectStorageServer.iml" filepath="$PROJECT_DIR$/.idea/objectStorageServer.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/object-storage-server.iml" filepath="$PROJECT_DIR$/.idea/object-storage-server.iml" />
     </modules>
   </component>
 </project>

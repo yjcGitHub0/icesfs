@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-	"objectStorageServer/command"
+	"object-storage-server/command"
 )
 
 type AssignFileInfo struct {

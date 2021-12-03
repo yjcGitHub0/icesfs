@@ -2,7 +2,7 @@ package routers
 
 import (
 	"github.com/gin-gonic/gin"
-	"objectStorageServer/api"
+	"object-storage-server/api"
 )
 
 func InitRouter() (r *gin.Engine) {

@@ -2,8 +2,8 @@ package main
 
 import (
 	"log"
-	"objectStorageServer/command"
-	"objectStorageServer/routers"
+	"object-storage-server/command"
+	"object-storage-server/routers"
 )
 
 func main() {

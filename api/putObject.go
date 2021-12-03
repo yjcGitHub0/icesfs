@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"objectStorageServer/storageEngine"
+	"object-storage-server/storageEngine"
 	"os"
 )
 
