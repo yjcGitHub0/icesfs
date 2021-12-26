@@ -24,7 +24,7 @@ func (inode *Inode) TimeUnix() int64 {
 }
 
 func (inode *Inode) Key() string {
-	return string(inode.Set) + "_" + string(inode.FullPath) + "_inode"
+	return string(inode.Set) + string(inode.FullPath) + inodeKv
 }
 
 func (inode *Inode) toPb() *directory_pb.Inode {
