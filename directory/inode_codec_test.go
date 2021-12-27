@@ -14,7 +14,7 @@ func TestInode_EnDecodeProto(t *testing.T) {
 		Time:     time.Now(),
 		Mode:     os.ModeDir,
 	}
-	val.Time = time.Unix(val.TimeUnix(), 0) // windows: precision to s
+	val.Time = time.Unix(val.Time.Unix(), 0) // windows: precision to s
 
 	b, err := val.EncodeProto()
 	assert.Equal(t, err, nil)
