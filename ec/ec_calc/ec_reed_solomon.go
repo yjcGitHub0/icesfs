@@ -94,6 +94,7 @@ func (calc *ECCalc) reedSolomon(ctx context.Context, suite *ec_store.Suite) erro
 			file := io.TeeReader(bytes.NewReader(data[i]), md5Hashs[i])
 			fid, err := calc.storageEngine.PutObject(ctx, length, file, suite.Shards[i].Host)
 			if err != nil {
+				log.Errorw("reed solomon : put object", vars.ErrorKey, err, "ecid", suite.ECid)
 				return err
 			}
 			suite.Shards[i].Frags = append(suite.Shards[i].Frags, ec_store.Frag{
@@ -109,6 +110,7 @@ func (calc *ECCalc) reedSolomon(ctx context.Context, suite *ec_store.Suite) erro
 
 	err = calc.ECStore.InsertSuite(ctx, suite)
 	if err != nil {
+		log.Errorw("reed solomon : insert suite", vars.ErrorKey, err, "ecid", suite.ECid)
 		return err
 	}
 
@@ -117,17 +119,17 @@ func (calc *ECCalc) reedSolomon(ctx context.Context, suite *ec_store.Suite) erro
 			if frag.OldECid != "" {
 				oldSuite, err := calc.ECStore.GetSuite(ctx, frag.OldECid)
 				if err != nil {
+					log.Errorw("reed solomon : get suite", vars.ErrorKey, err, "ecid", suite.ECid)
 					return err
 				}
 				if oldSuite.BakFid != "" {
+					// delete backup
 					err = calc.storageEngine.DeleteObject(ctx, oldSuite.BakFid)
-				}
-				if err != nil {
-					return err
 				}
 				oldSuite.Next = suite.ECid
 				err = calc.ECStore.InsertSuite(ctx, oldSuite)
 				if err != nil {
+					log.Errorw("reed solomon : insert suite", vars.ErrorKey, err, "ecid", suite.ECid)
 					return err
 				}
 			}
@@ -288,6 +290,7 @@ func (calc *ECCalc) reedSolomonRecover(ctx context.Context, suite *ec_store.Suit
 
 	err = calc.ECStore.InsertSuite(ctx, suite)
 	if err != nil {
+		log.Errorw("reed solomon recover: insert suite", vars.ErrorKey, err, "ecid", suite.ECid)
 		return nil, err
 	}
 
