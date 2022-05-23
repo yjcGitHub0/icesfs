@@ -2,10 +2,14 @@ package vfs
 
 import (
 	"context"
+	"icesos/command/vars"
+	"icesos/ec/ec_server"
+	"icesos/ec/ec_store"
 	"icesos/entry"
 	"icesos/errors"
 	"icesos/full_path"
 	"icesos/kv"
+	"icesos/log"
 	"icesos/set"
 	"icesos/storage_engine"
 	"time"
@@ -13,19 +17,22 @@ import (
 
 type VFS struct {
 	kvStore       kv.KvStoreWithRedisMutex
-	storageEngine *storage_engine.StorageEngine
+	storageEngine storage_engine.StorageEngine
+	ecServer      *ec_server.ECServer
 }
 
-func NewVFS(kvStore kv.KvStoreWithRedisMutex, storageEngine *storage_engine.StorageEngine) *VFS {
+func NewVFS(kvStore kv.KvStoreWithRedisMutex, storageEngine storage_engine.StorageEngine, ecServer *ec_server.ECServer) *VFS {
 	return &VFS{
 		kvStore:       kvStore,
 		storageEngine: storageEngine,
+		ecServer:      ecServer,
 	}
 }
 
 func (vfs *VFS) InsertObject(ctx context.Context, ent *entry.Entry, cover bool) error {
 	if !ent.FullPath.IsLegalObjectName() {
-		return errors.ErrorCodeResponse[errors.ErrIllegalObjectName]
+		log.Errorw("object full path is illegal", vars.UUIDKey, ctx.Value(vars.UUIDKey), vars.UserKey, ctx.Value(vars.UserKey), "ent", ent, "cover", cover)
+		return errors.GetAPIErr(errors.ErrIllegalObjectName)
 	}
 
 	dirList := ent.SplitList()
@@ -35,7 +42,6 @@ func (vfs *VFS) InsertObject(ctx context.Context, ent *entry.Entry, cover bool) 
 		if err != nil {
 			return err
 		}
-
 		if !isUpdateMtime && isCreate {
 			isUpdateMtime = true
 			//only dir.dir == /
@@ -53,8 +59,8 @@ func (vfs *VFS) InsertObject(ctx context.Context, ent *entry.Entry, cover bool) 
 func (vfs *VFS) GetObject(ctx context.Context, set set.Set, fp full_path.FullPath) (*entry.Entry, error) {
 	ent, err := vfs.getEntry(ctx, set, fp)
 	if err != nil {
-		if err == kv.KvNotFound {
-			return nil, errors.ErrorCodeResponse[errors.ErrInvalidPath]
+		if err == kv.NotFound {
+			return nil, errors.GetAPIErr(errors.ErrInvalidPath)
 		}
 		return nil, err
 	}
@@ -67,13 +73,13 @@ func (vfs *VFS) DeleteObject(ctx context.Context, set set.Set, fp full_path.Full
 	// if fp == / think fp is a folder
 	if fp == inodeRoot {
 		if recursive == false {
-			return errors.ErrorCodeResponse[errors.ErrInvalidDelete]
+			return errors.GetAPIErr(errors.ErrInvalidDelete)
 		}
 	} else {
 		ent, err := vfs.getEntry(ctx, set, fp)
 		if err != nil {
-			if err == kv.KvNotFound {
-				return errors.ErrorCodeResponse[errors.ErrInvalidPath]
+			if err == kv.NotFound {
+				return errors.GetAPIErr(errors.ErrInvalidPath)
 			}
 			return err
 		}
@@ -84,7 +90,7 @@ func (vfs *VFS) DeleteObject(ctx context.Context, set set.Set, fp full_path.Full
 		}
 
 		if ent.IsDirectory() && recursive == false && inodeCnt != 0 {
-			return errors.ErrorCodeResponse[errors.ErrInvalidDelete]
+			return errors.GetAPIErr(errors.ErrInvalidDelete)
 		}
 	}
 
@@ -109,20 +115,20 @@ func (vfs *VFS) ListObjects(ctx context.Context, set set.Set, fp full_path.FullP
 	if fp != inodeRoot {
 		ent, err := vfs.getEntry(ctx, set, fp)
 		if err != nil {
-			if err == kv.KvNotFound {
-				return []entry.ListEntry{}, errors.ErrorCodeResponse[errors.ErrInvalidPath]
+			if err == kv.NotFound {
+				return []entry.ListEntry{}, errors.GetAPIErr(errors.ErrInvalidPath)
 			}
 			return []entry.ListEntry{}, err
 		}
 
 		if ent.IsFile() {
-			return []entry.ListEntry{}, errors.ErrorCodeResponse[errors.ErrInvalidPath]
+			return []entry.ListEntry{}, errors.GetAPIErr(errors.ErrInvalidPath)
 		}
 	}
 
 	inodes, err := vfs.getInodeChs(ctx, set, fp)
 	if err != nil {
-		if err == kv.KvNotFound {
+		if err == kv.NotFound {
 			return []entry.ListEntry{}, nil //not found return not err
 		}
 		return []entry.ListEntry{}, err
@@ -132,10 +138,22 @@ func (vfs *VFS) ListObjects(ctx context.Context, set set.Set, fp full_path.FullP
 	for i, v := range inodes {
 		ent, err := vfs.getEntry(ctx, set, v)
 		if err != nil {
+			log.Errorw("list objects get entry error", vars.UUIDKey, ctx.Value(vars.UUIDKey), vars.UserKey, ctx.Value(vars.UserKey), vars.ErrorKey, err.Error(), "set", set, "full path", fp)
 			return []entry.ListEntry{}, err
 		}
 		ret[i] = *ent
 	}
 
-	return entry.ToListEntris(ret), nil
+	return entry.ToListEntries(ret), nil
+}
+
+func (vfs *VFS) RecoverObject(ctx context.Context, frags []ec_store.Frag) error {
+	for _, frag := range frags {
+		err := vfs.recoverEntry(ctx, &frag)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

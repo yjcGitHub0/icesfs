@@ -2,6 +2,7 @@ package api
 
 import (
 	"github.com/gin-gonic/gin"
+	"icesos/command/vars"
 	"icesos/errors"
 	"icesos/full_path"
 	"icesos/server"
@@ -10,7 +11,7 @@ import (
 )
 
 type DeleteObjectInfo struct {
-	Recursive bool `form:"recursive" json:"recursive" uri:"recursive"`
+	Recursive bool `form:"recursive" json:"recursive" uri:"recursive" xml:"recursive" yaml:"recursive"`
 }
 
 func DeleteObjectHandler(c *gin.Context) {
@@ -18,12 +19,15 @@ func DeleteObjectHandler(c *gin.Context) {
 
 	err := c.Bind(deleteObjectInfo)
 	if err != nil {
-		apiErr := errors.ErrorCodeResponse[errors.ErrRouter]
+		apiErr := errors.GetAPIErr(errors.ErrRouter)
+		c.Set(vars.CodeKey, apiErr.ErrorCode)
+		c.Set(vars.ErrorKey, err.Error())
 		c.JSON(
 			apiErr.HTTPStatusCode,
 			gin.H{
-				"code":  apiErr.ErrorCode,
-				"error": err.Error(),
+				vars.UUIDKey:  c.Value(vars.UUIDKey),
+				vars.CodeKey:  apiErr.ErrorCode,
+				vars.ErrorKey: err.Error(),
 			},
 		)
 		return
@@ -31,40 +35,49 @@ func DeleteObjectHandler(c *gin.Context) {
 
 	setName, fp := set.Set(c.Param("set")), full_path.FullPath(c.Param("fp"))
 	if !setName.IsLegal() {
-		err := errors.ErrorCodeResponse[errors.ErrIllegalSetName]
+		err := errors.GetAPIErr(errors.ErrIllegalSetName)
+		c.Set(vars.CodeKey, err.ErrorCode)
+		c.Set(vars.ErrorKey, err.Error())
 		c.JSON(
 			err.HTTPStatusCode,
 			gin.H{
-				"code":  err.ErrorCode,
-				"error": err.Error(),
+				vars.UUIDKey:  c.Value(vars.UUIDKey),
+				vars.CodeKey:  err.ErrorCode,
+				vars.ErrorKey: err.Error(),
 			},
 		)
 		return
 	}
 	if !fp.IsLegal() {
-		err := errors.ErrorCodeResponse[errors.ErrIllegalObjectName]
+		err := errors.GetAPIErr(errors.ErrIllegalObjectName)
+		c.Set(vars.CodeKey, err.ErrorCode)
+		c.Set(vars.ErrorKey, err.Error())
 		c.JSON(
 			err.HTTPStatusCode,
 			gin.H{
-				"code":  err.ErrorCode,
-				"error": err.Error(),
+				vars.UUIDKey:  c.Value(vars.UUIDKey),
+				vars.CodeKey:  err.ErrorCode,
+				vars.ErrorKey: err.Error(),
 			},
 		)
 		return
 	}
 	fp = fp.Clean()
 
-	err = server.Svr.DeleteObject(c, setName, fp, deleteObjectInfo.Recursive)
+	err = server.DeleteObject(c, setName, fp, deleteObjectInfo.Recursive)
 	if err != nil {
 		err, ok := err.(errors.APIError)
 		if ok != true {
-			err = errors.ErrorCodeResponse[errors.ErrServer]
+			err = errors.GetAPIErr(errors.ErrServer)
 		}
+		c.Set(vars.CodeKey, err.ErrorCode)
+		c.Set(vars.ErrorKey, err.Error())
 		c.JSON(
 			err.HTTPStatusCode,
 			gin.H{
-				"code":  err.ErrorCode,
-				"error": err.Error(),
+				vars.UUIDKey:  c.Value(vars.UUIDKey),
+				vars.CodeKey:  err.ErrorCode,
+				vars.ErrorKey: err.Error(),
 			},
 		)
 		return

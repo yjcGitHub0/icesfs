@@ -25,7 +25,12 @@ const (
 	ErrInvalidDelete        ErrorCode = 4002
 	ErrIllegalObjectName    ErrorCode = 4003
 	ErrIllegalSetName       ErrorCode = 4004
-	ErrRouter               ErrorCode = 4005
+	ErrIllegalSetRules      ErrorCode = 4005
+	ErrIllegalObjectSize    ErrorCode = 4006
+	ErrRouter               ErrorCode = 4007
+	ErrRecoverFailed        ErrorCode = 4008
+	ErrObjectNotExist       ErrorCode = 4009
+	ErrSetRulesNotExist     ErrorCode = 4010
 	ErrAdminAuthenticate    ErrorCode = 4100
 	ErrUserNotExist         ErrorCode = 4101
 	ErrUserAuthenticate     ErrorCode = 4102
@@ -37,10 +42,11 @@ const (
 	ErrSeaweedFSMaster      ErrorCode = 5003
 	ErrSeaweedFSVolume      ErrorCode = 5004
 	ErrRedisSync            ErrorCode = 5005
-	ErrServer               ErrorCode = 5006
+	ErrParseFid             ErrorCode = 5006
+	ErrServer               ErrorCode = 5007
 )
 
-var ErrorCodeResponse = map[ErrorCode]APIError{
+var errorCodeResponse = map[ErrorCode]APIError{
 	// 200
 	ErrNone: {
 		ErrorCode:      ErrNone,
@@ -73,10 +79,35 @@ var ErrorCodeResponse = map[ErrorCode]APIError{
 		Description:    "Illegal set name",
 		HTTPStatusCode: http.StatusBadRequest,
 	},
+	ErrIllegalSetRules: {
+		ErrorCode:      ErrIllegalSetRules,
+		Description:    "Illegal set rules",
+		HTTPStatusCode: http.StatusBadRequest,
+	},
+	ErrIllegalObjectSize: {
+		ErrorCode:      ErrIllegalObjectSize,
+		Description:    "Illegal object size",
+		HTTPStatusCode: http.StatusBadRequest,
+	},
 	ErrRouter: {
 		ErrorCode:      ErrRouter,
 		Description:    "Router problem",
 		HTTPStatusCode: http.StatusBadRequest,
+	},
+	ErrRecoverFailed: {
+		ErrorCode:      ErrRecoverFailed,
+		Description:    "Object recover failed",
+		HTTPStatusCode: http.StatusBadRequest,
+	},
+	ErrObjectNotExist: {
+		ErrorCode:      ErrObjectNotExist,
+		Description:    "Object not exist",
+		HTTPStatusCode: http.StatusNotFound,
+	},
+	ErrSetRulesNotExist: {
+		ErrorCode:      ErrSetRulesNotExist,
+		Description:    "set rules not exist",
+		HTTPStatusCode: http.StatusNotFound,
 	},
 	// iam
 	ErrAdminAuthenticate: {
@@ -135,9 +166,18 @@ var ErrorCodeResponse = map[ErrorCode]APIError{
 		Description:    "Redis lock server error",
 		HTTPStatusCode: http.StatusInternalServerError,
 	},
+	ErrParseFid: {
+		ErrorCode:      ErrParseFid,
+		Description:    "Parse fid error",
+		HTTPStatusCode: http.StatusInternalServerError,
+	},
 	ErrServer: {
 		ErrorCode:      ErrServer,
 		Description:    "icesos server error",
 		HTTPStatusCode: http.StatusInternalServerError,
 	},
+}
+
+func GetAPIErr(errorCode ErrorCode) APIError {
+	return errorCodeResponse[errorCode]
 }

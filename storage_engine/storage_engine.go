@@ -1,21 +1,14 @@
 package storage_engine
 
-import "icesos/util"
+import (
+	"context"
+	"io"
+)
 
-type StorageEngine struct {
-	masterServer  string
-	volumeIpMap   map[uint64]string
-	DeletionQueue *util.UnboundedQueue
-}
-
-func NewStorageEngine(masterServer string) *StorageEngine {
-	svr := &StorageEngine{
-		masterServer:  masterServer,
-		volumeIpMap:   make(map[uint64]string),
-		DeletionQueue: util.NewUnboundedQueue(),
-	}
-
-	go svr.loopProcessingDeletion()
-
-	return svr
+type StorageEngine interface {
+	PutObject(ctx context.Context, size uint64, file io.Reader, compress bool, hosts ...string) (string, error)
+	DeleteObject(ctx context.Context, fid string) error
+	GetFidUrl(ctx context.Context, fid string) (string, error)
+	GetHosts(ctx context.Context) ([]string, error)
+	AddLink(ctx context.Context, fid string) error
 }
